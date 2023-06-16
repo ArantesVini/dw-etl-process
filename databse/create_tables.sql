@@ -1,3 +1,7 @@
+-- database name is: logistic_data_mart
+-- schema: dbs
+-- I use postgres with pgAdmin as DBMS, all running in Docker containers
+
 CREATE TABLE dbs."D_CUSTOMER"
 (
     customer_id int NOT NULL,
