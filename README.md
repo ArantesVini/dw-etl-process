@@ -15,7 +15,3 @@ The objective of this project is to implement an ETL process that reads CSV file
 ## Repository Structure
 
 - TODO add the repository strutucre
-
-## License
-
-This project is licensed under the MIT License - see the [MIT LICENSE](LICENSE) file for details.
