@@ -38,3 +38,16 @@ with DAG(
         task_id='read_csv',
         python_callable=extarct_csv_files,
     )
+
+    load_data = PostgresOperator(
+        task_id='load_data',
+        sql='''INSERT INTO dbs.D_CUSTOMER VALUES 
+            (customer_id,
+            customer_name,
+            customer_surname,)
+            VALUES (%s, %s, %s)''',
+        postgres_conn_id='postgres_default',
+        params=read_csv.python_callable(),
+    )
+
+    read_csv >> load_data
