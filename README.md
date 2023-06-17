@@ -11,11 +11,12 @@ The objective of this project is to implement an ETL process that reads CSV file
 - Python
 - Apache Airflow
 - PostgreSQL
+- Docker
 
 ## Repository Structure
 
 - `/database/` the SQL scripts used to create the DW;
-- TODO add the repository strutucre
+- `/dags/` the apache airflow DAG and the csvs files of the example data.
 
 ## About the project
 
@@ -26,8 +27,7 @@ Consider the questions below from a Logistics Manager in a retail network:
 • Which months had the highest number of on-time deliveries?
 • Did a specific customer receive more deliveries on time or delayed?
 
-These are typical business questions that managers seek answers to. To answer these and other questions, we will build a Data Warehouse (DW). However, let's automate the DW loading process from the data source in CSV format. Our ETL (Extract, Transform, Load) process will verify the data, perform cleaning tasks, remove inconsistencies, prepare the schema, and then load it into the DW. As the icing on the cake, we will create SQL queries to answer some business questions.
-
+These are typical business questions that managers seek answers to. To answer these and other questions, we will build a Data Warehouse (DW). However, let's automate the DW loading process from the data source in CSV format. Our ETL (Extract, Transform, Load) process will verify the data, perform cleaning tasks, remove inconsistencies, prepare the schema, and then load it into the DW.
 All the data used in this project are fictional, for practice and research purposes only
 
 ## DataWarehouse modelling
