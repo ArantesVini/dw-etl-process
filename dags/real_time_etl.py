@@ -44,114 +44,40 @@ with DAG(
         description='ETL Job to load data in a DW with Airflow',
         start_date=airflow.utils.dates.days_ago(1),) as dag:
 
-    table_name = 'D_CUSTOMER'
-    task_load_data_customer = PythonOperator(
-        task_id='task_load_data_customer',
-        python_callable=load_data_fun_standard,
-        op_args=[table_name],
-        provide_context=True,
-        op_kwargs={'params': {
-            f'csv_file_path': '/opt/airflow/dags/data/{table_name}.csv'}},
-    )
+    table_names = ['D_CUSTOMER', 'D_WAREHOUSE',
+                   'D_DELIVERY', 'D_PAYMENT',
+                   'D_DATE', 'D_SHIPP_COMPANY',
+                   'F_LOGISTIC']
 
-    table_name = 'D_WAREHOUSE'
-    task_load_data_warehouse = PythonOperator(
-        task_id='task_load_data_warehouse',
-        python_callable=load_data_fun_standard,
-        op_args=[table_name],
-        provide_context=True,
-        op_kwargs={'params': {
-            f'csv_file_path': '/opt/airflow/dags/data/{table_name}.csv'}},
-    )
+    load_data_tasks = []
+    for table_name in table_names:
+        csv_file_path = f'/opt/airflow/dags/data/{table_name}.csv'
+        task_id = f'task_load_data_{table_name.lower()}'
 
-    table_name = 'D_DELIVERY'
-    task_load_data_delivery = PythonOperator(
-        task_id='task_load_data_delivery',
-        python_callable=load_data_fun_standard,
-        op_args=[table_name],
-        provide_context=True,
-        op_kwargs={'params': {
-            f'csv_file_path': '/opt/airflow/dags/data/{table_name}.csv'}},
-    )
+        load_data_task = PythonOperator(
+            task_id=task_id,
+            python_callable=load_data_fun_standard,
+            op_args=[table_name],
+            provide_context=True,
+            op_kwargs={'params': {'csv_file_path': csv_file_path}},
+            dag=dag
+        )
+        load_data_tasks.append(load_data_task)
 
-    table_name = 'D_PAYMENT'
-    task_load_data_payment = PythonOperator(
-        task_id='task_load_data_payment',
-        python_callable=load_data_fun_standard,
-        op_args=[table_name],
-        provide_context=True,
-        op_kwargs={'params': {
-            f'csv_file_path': '/opt/airflow/dags/data/{table_name}.csv'}},
-    )
+    truncate_tasks = []
+    for table_name in table_names:
+        truncate_task = PostgresOperator(
+            task_id=f'truncate_{table_name.lower()}',
+            postgres_conn_id='postgres_default',
+            sql=f"TRUNCATE TABLE dbs.{table_name} CASCADE",
+            dag=dag
+        )
+        truncate_tasks.append(truncate_task)
 
-    table_name = 'D_DATE'
-    task_load_data_date = PythonOperator(
-        task_id='task_load_data_date',
-        python_callable=load_data_fun_standard,
-        op_args=[table_name],
-        provide_context=True,
-        op_kwargs={'params': {
-            f'csv_file_path': '/opt/airflow/dags/data/{table_name}.csv'}},
-    )
+    truncate_tasks[-1].set_downstream(load_data_tasks[0])
+    for i in range(len(truncate_tasks) - 1):
+        truncate_tasks[i].set_downstream(truncate_tasks[i + 1])
 
-    table_name = 'D_SHIPP_COMPANY'
-    task_load_data_shipp_company = PythonOperator(
-        task_id='task_load_data_shipp_company',
-        python_callable=load_data_fun_standard,
-        op_args=[table_name],
-        provide_context=True,
-        op_kwargs={'params': {
-            f'csv_file_path': '/opt/airflow/dags/data/{table_name}.csv'}},
-    )
-
-    table_name = 'F_LOGISTIC'
-    task_load_data_fact_logistic = PythonOperator(
-        task_id='task_load_data_fact_logistic',
-        python_callable=load_data_fun_standard,
-        op_args=[table_name],
-        provide_context=True,
-        op_kwargs={'params': {
-            f'csv_file_path': '/opt/airflow/dags/data/{table_name}.csv'}},
-    )
-
-    truncat_f_logistic = PostgresOperator(
-        task_id='truncat_f_logistic',
-        postgres_conn_id='postgres_default',
-        sql="TRUNCATE TABLE dbs.F_LOGISTIC CASCADE",
-    )
-    truncat_d_customer = PostgresOperator(
-        task_id='truncat_d_customer',
-        postgres_conn_id='postgres_default',
-        sql="TRUNCATE TABLE dbs.D_CUSTOMER CASCADE",
-    )
-    truncat_d_payment = PostgresOperator(
-        task_id='truncat_d_payment',
-        postgres_conn_id='postgres_default',
-        sql="TRUNCATE TABLE dbs.D_PAYMENT CASCADE",
-    )
-    truncat_d_date = PostgresOperator(
-        task_id='truncat_d_date',
-        postgres_conn_id='postgres_default',
-        sql="TRUNCATE TABLE dbs.D_DATE CASCADE",
-    )
-    truncat_d_shippcom = PostgresOperator(
-        task_id='truncat_d_shippcom',
-        postgres_conn_id='postgres_default',
-        sql="TRUNCATE TABLE dbs.D_SHIPP_COMPANY CASCADE",
-    )
-    truncat_d_delivery = PostgresOperator(
-        task_id='truncat_d_delivery',
-        postgres_conn_id='postgres_default',
-        sql="TRUNCATE TABLE dbs.D_DELIVERY CASCADE",
-    )
-    truncat_d_warehouse = PostgresOperator(
-        task_id='truncat_d_warehouse',
-        postgres_conn_id='postgres_default',
-        sql="TRUNCATE TABLE dbs.D_WAREHOUSE CASCADE",
-    )
-
-    truncat_f_logistic >> truncat_d_customer >> truncat_d_payment >> \
-        truncat_d_date >> truncat_d_shippcom >> truncat_d_delivery >> truncat_d_warehouse >> \
-        task_load_data_customer >> task_load_data_warehouse >> task_load_data_delivery >> \
-        task_load_data_payment >> task_load_data_shipp_company >> task_load_data_date >> \
-        task_load_data_fact_logistic
+    load_data_tasks[0].set_upstream(truncate_tasks[-1])
+    for i in range(len(load_data_tasks) - 1):
+        load_data_tasks[i].set_downstream(load_data_tasks[i + 1])
