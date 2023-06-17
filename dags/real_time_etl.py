@@ -18,12 +18,23 @@ default_args = {
 }
 
 
-def extarct_csv_files():
-    values = []
-    with open('data/D_CUSTOMER.csv') as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=',')
-        for row in csv_reader:
-            values.append(tuple(row))
+def load_data_fun(**kwargs):
+
+    csv_file_path = kwargs['params']['csv_file_path']
+    i = 0
+    with open(csv_file_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for item in reader:
+            i += 1
+            data = dict(item)
+            sql_query = "INSERT INTO dbs.D_CUSTOMER (%s) VALUES (%s)" % (
+                ','.join(data.keys()), ','.join([item for item in data.values()]))
+            postgres_operator = PostgresOperator(task_id='load_data_' + str(i),
+                                                 sql=sql_query,
+                                                 params=(data),
+                                                 postgres_conn_id='postgres_default',
+                                                 dag=dag)
+            postgres_operator.execute(context=kwargs)
 
 
 with DAG(
@@ -34,20 +45,12 @@ with DAG(
         description='ETL Job to load data in a DW with Airflow',
         start_date=airflow.utils.dates.days_ago(1),) as dag:
 
-    read_csv = PythonOperator(
-        task_id='read_csv',
-        python_callable=extarct_csv_files,
+    load_data_task = PythonOperator(
+        task_id='load_data_task',
+        python_callable=load_data_fun,
+        provide_context=True,
+        op_kwargs={'params': {
+            'csv_file_path': '/opt/airflow/dags/data/D_CUSTOMER.csv'}},
     )
 
-    load_data = PostgresOperator(
-        task_id='load_data',
-        sql='''INSERT INTO dbs.D_CUSTOMER VALUES 
-            (customer_id,
-            customer_name,
-            customer_surname,)
-            VALUES (%s, %s, %s)''',
-        postgres_conn_id='postgres_default',
-        params=read_csv.python_callable(),
-    )
-
-    read_csv >> load_data
+    load_data_task
