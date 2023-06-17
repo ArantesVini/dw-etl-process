@@ -1,0 +1,4 @@
+delivery_id,delivery_adress,delivery_country, delivery_type
+100,'RuaA','Brasil', 'express'
+101,'RuaB','Brasil', 'standard'
+102,'RuaC','Brasil', 'express'
