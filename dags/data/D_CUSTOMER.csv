@@ -1,4 +1,5 @@
 customer_id,customer_name,customer_surname
 100,'Bob','Farias'
 101,'Maria','Tavares'
+102,'Vinicius', 'Arantes'
 103,'John','Snow'
